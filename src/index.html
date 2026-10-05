@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14171c">
+<title>QR Lens — QR scanner</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/images/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="styles/components.css">
+</head>
+<body>
+<div class="device">
+  <header class="device__head">
+    <h1 class="display">QR LENS<span>.</span></h1>
+    <div class="device__actions">
+      <label class="language-picker">
+        <span class="sr-only" data-i18n="language.label">Language</span>
+        <select id="languageSelect" data-i18n-aria-label="language.label" aria-label="Language">
+          <option value="en">English</option>
+          <option value="pt">Português</option>
+          <option value="es">Español</option>
+        </select>
+      </label>
+      <button class="btn hidden" id="btnInstall" data-i18n="install.button">Install</button>
+    </div>
+  </header>
+
+  <section id="view-start">
+    <div class="viewport start">
+      <svg class="start__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2"/><path d="M8 8h3v3H8zM14 8h3v3h-3zM8 14h3v3H8zM14 14h3v3h-3z"/></svg>
+      <h2 data-i18n="start.title">Scan a QR code</h2>
+      <p><span data-i18n="start.description">Point your camera at a QR code.</span><span data-i18n="start.actionDescription">Choose an action or copy its text.</span></p>
+      <button class="btn primary" id="btnStart" data-i18n="start.camera" disabled>Turn on camera</button>
+    </div>
+    <p class="error mono" id="startError" role="alert"></p>
+  </section>
+
+  <section id="view-camera" class="hidden">
+    <div class="viewport">
+      <video id="video" playsinline muted autoplay data-i18n-aria-label="camera.preview" aria-label="Camera preview"></video>
+      <div class="brackets" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+    </div>
+    <p class="camera-status mono" role="status" data-i18n="status.searching">Point the camera at a QR code</p>
+    <div class="controls">
+      <button class="btn hidden" id="btnSwitch" data-i18n="camera.switch">Switch camera</button>
+      <button class="btn" id="btnStop" data-i18n="camera.stop">Stop camera</button>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <div class="result-panel">
+      <header class="result-heading">
+        <p class="result-eyebrow"><svg class="ui-icon" aria-hidden="true"><use href="#icon-check"/></svg><span data-i18n="result.detected">QR code detected</span></p>
+        <h2 id="resultTitle" tabindex="-1">QR code</h2>
+        <p class="hint" id="resultHint"></p>
+      </header>
+      <dl id="resultDetails"></dl>
+      <div class="result-content">
+        <label for="resultText" data-i18n="result.content">QR code content</label>
+        <textarea class="mono" id="resultText" rows="2" readonly spellcheck="false"></textarea>
+      </div>
+      <div id="resultActions"></div>
+      <div class="result-controls">
+        <button class="btn copy-button" id="btnCopy"><svg class="ui-icon" aria-hidden="true"><use href="#icon-copy"/></svg><span data-i18n="result.copy">Copy text</span></button>
+        <button class="btn scan-button" id="btnScanAgain"><svg class="ui-icon" aria-hidden="true"><use href="#icon-qr"/></svg><span data-i18n="result.scanAgain">Scan another</span></button>
+      </div>
+      <p class="mono" id="resultStatus" role="status" aria-live="polite"></p>
+    </div>
+  </section>
+  <p class="foot mono" data-i18n="footer.local">runs locally in your browser — nothing is uploaded</p>
+</div>
+<svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
+  <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></symbol>
+  <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>
+  <symbol id="icon-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+  <symbol id="icon-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></symbol>
+  <symbol id="icon-qr" viewBox="0 0 24 24"><path d="M3 3h6v6H3zM15 3h6v6h-6zM3 15h6v6H3zM15 15h2v2h-2zM21 15v6h-6M12 3v3M12 12h9M3 12h6M12 15v6"/></symbol>
+</svg>
+<script defer src="vendor/jsQR-1.4.0.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

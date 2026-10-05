@@ -1,0 +1,23 @@
+.device{min-height:100dvh;display:flex;flex-direction:column;background:linear-gradient(180deg,var(--panel),#171b21);padding:0 clamp(12px,3vw,32px);}
+.device__head{display:flex;align-items:center;justify-content:space-between;min-height:64px;padding:10px 4px;border-bottom:1px solid var(--border);gap:12px;}
+.device__head h1{margin:0;font-size:19px;letter-spacing:.01em;}
+.device__head h1 span{color:var(--accent);}
+.device__actions{display:flex;align-items:center;gap:10px;}
+.device > section{flex:1;display:flex;flex-direction:column;padding:14px 0;}
+.viewport{position:relative;flex:1;min-height:240px;background:#000;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);}
+#view-camera .viewport{min-height:50dvh;}
+#video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;}
+.start{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:16px;padding:32px 20px;}
+.start h2,.result-panel h2{margin:0;font-size:20px;}
+.start p{color:var(--muted);font-size:14px;line-height:1.6;margin:0;max-width:320px;}
+.controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.foot{text-align:center;padding:10px 0 12px;margin:0;font-size:11px;color:var(--muted);}
+@media (max-width:400px){.controls .btn{flex:1;} .device__actions{gap:6px;} .language-picker select{max-width:100px;}}
+.start p span{display:block;}
+.result-panel{width:100%;max-width:560px;margin:auto;display:flex;flex-direction:column;gap:20px;padding:28px;background:rgba(20,23,28,.45);border:1px solid var(--border);border-radius:20px;}
+.result-panel h2{font-size:28px;letter-spacing:-.03em;}
+.result-controls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:18px;border-top:1px solid var(--border);}
+#resultActions{display:grid;gap:8px;}
+#resultActions:empty,#resultDetails:empty{display:none;}
+@media (max-width:600px){.result-panel{padding:22px 18px;border-radius:16px;} .result-controls .btn{padding-inline:12px;font-size:13px;}}
+@media (max-width:350px){.result-controls{flex-wrap:wrap;} .result-controls .btn{flex:1;}}

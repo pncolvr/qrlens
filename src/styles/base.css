@@ -1,0 +1,19 @@
+:root{
+  --bg:#14171c;
+  --panel:#1c2128;
+  --panel-2:#232933;
+  --border:#2d343f;
+  --text:#edf0f3;
+  --muted:#8a94a3;
+  --accent:#e8a33d;
+  --bad:#e2604f;
+  --radius:14px;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;}
+button,select,textarea{font:inherit;}
+.mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;}
+.hidden{display:none !important;}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:4px;}

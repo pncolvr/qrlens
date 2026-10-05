@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Serve capture app",
+			"type": "shell",
+			"command": "python3",
+			"args": [
+				"serve.py",
+				"8000"
+			],
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "capture-server",
+				"pattern": {
+					"regexp": ".*"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": "^Serving ",
+					"endsPattern": "^Serving "
+				}
+			},
+			"group": "build"
+		},
+		{
+			"label": "Stop capture app",
+			"type": "shell",
+			"command": "pkill -f '[s]erve.py 8000' || true",
+			"problemMatcher": []
+		}
+	]
+}

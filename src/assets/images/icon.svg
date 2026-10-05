@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#14171c"/>
+  <path d="M80 144V96a16 16 0 0 1 16-16h48M368 80h48a16 16 0 0 1 16 16v48M80 368v48a16 16 0 0 0 16 16h48M368 432h48a16 16 0 0 0 16-16v-48" fill="none" stroke="#e8a33d" stroke-width="16" stroke-linecap="round"/>
+  <g fill="#edf0f3">
+    <path fill-rule="evenodd" d="M128 128h96v96h-96zm16 16v64h64v-64zM288 128h96v96h-96zm16 16v64h64v-64zM128 288h96v96h-96zm16 16v64h64v-64z"/>
+    <path d="M160 160h32v32h-32zM320 160h32v32h-32zM160 320h32v32h-32zM240 128h16v32h-16zM240 192h16v32h-16zM128 240h32v16h-32zM192 240h64v16h-64zM288 240h32v16h-32zM352 240h32v32h-32zM240 288h32v32h-32zM288 288h32v16h-32zM336 288h48v32h-48zM288 320h16v32h-16zM240 352h32v32h-32zM320 352h32v32h-32zM368 336h16v48h-16zM288 368h16v16h-16z"/>
+  </g>
+</svg>
