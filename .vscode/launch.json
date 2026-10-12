@@ -5,7 +5,7 @@
       "name": "Launch capture app",
       "type": "node-terminal",
       "request": "launch",
-      "command": "xdg-open http://localhost:8000/index.html",
+      "command": "xdg-open 'http://localhost:8000/index.html'",
       "preLaunchTask": "Serve capture app",
       "postDebugTask": "Stop capture app"
     }

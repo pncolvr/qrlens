@@ -6,7 +6,7 @@ import { parseQR } from '../src/js/qr.js';
 
 const source = readFileSync(new URL('../src/js/app.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '');
 
-function setup(){
+function setup({ hostname = "localhost", search = "" } = {}){
   class Element {
     constructor(){
       this.children = []; this.events = {}; this.attributes = {}; this.classes = new Set(); this.text = ''; this.value = '';
@@ -28,6 +28,7 @@ function setup(){
   const blobs = [], revoked = [], timers = [];
   const document = { getElementById: element, createElement: () => new Element(), createElementNS: () => new Element(), addEventListener(){}, body: new Element(), hidden: false };
   const browser = {
+    location: { hostname, search }, URLSearchParams,
     document, window: { addEventListener(){} }, navigator: { clipboard: { writeText: async () => {} } }, Blob,
     URL: { createObjectURL(blob){ blobs.push(blob); return 'blob:test'; }, revokeObjectURL(url){ revoked.push(url); } },
     setTimeout: callback => timers.push(callback), console,
@@ -80,5 +81,26 @@ test('contact and calendar downloads start on a tap and release temporary URLs',
     assert.equal(link.href, 'blob:test');
     env.timers[0]();
     assert.deepEqual(env.revoked, ['blob:test']);
+  }
+});
+
+
+test('switch-camera preview is limited to an explicit flag on loopback hosts', () => {
+  for (const [hostname, search, visible] of [
+    ['localhost', '?showCameraSwitch=1', true],
+    ['127.0.0.1', '?showCameraSwitch=1', true],
+    ['[::1]', '?showCameraSwitch=1', true],
+    ['localhost', '', false],
+    ['localhost', '?showCameraSwitch=0', false],
+    ['localhost', '?showCameraSwitch', false],
+    ['example.com', '?showCameraSwitch=1', false],
+    ['localhost.example.com', '?showCameraSwitch=1', false],
+    ['192.168.1.2', '?showCameraSwitch=1', false]
+  ]){
+    const env = setup({ hostname, search });
+    env.callbacks.onStatus({ deviceCount: 1 });
+    assert.equal(env.element('btnSwitch').classList.contains('hidden'), !visible, hostname + search);
+    env.callbacks.onStatus({ deviceCount: 2 });
+    assert.equal(env.element('btnSwitch').classList.contains('hidden'), false);
   }
 });

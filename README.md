@@ -37,6 +37,8 @@ python3 serve.py 8000
 
 Open `http://localhost:8000/index.html`. Camera access requires permission and HTTPS when accessing from another device.
 
+To preview the switch-camera button with one camera, open `http://localhost:8000/index.html?showCameraSwitch=1` and turn on the camera. This parameter works only on localhost or loopback addresses; switching still requires multiple cameras.
+
 ## Tech
 
 Vanilla HTML/CSS/JS and [jsQR](https://github.com/cozmo/jsQR). The pinned jsQR 1.4.0 decoder is bundled locally in `src/vendor`, including its Apache 2.0 license. No build step or CDN connection is required at runtime.

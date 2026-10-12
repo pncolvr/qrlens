@@ -45,8 +45,14 @@
     </div>
     <p class="camera-status mono" role="status" data-i18n="status.searching">Point the camera at a QR code</p>
     <div class="controls">
-      <button class="btn hidden" id="btnSwitch" data-i18n="camera.switch">Switch camera</button>
-      <button class="btn" id="btnStop" data-i18n="camera.stop">Stop camera</button>
+      <button class="btn iconbtn camera-control hidden" id="btnSwitch" data-i18n-aria-label="camera.switch" aria-label="Switch camera" aria-describedby="switchTooltip">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-camera-switch"/></svg>
+        <span class="control-tooltip" id="switchTooltip" role="tooltip" data-i18n="camera.switch">Switch camera</span>
+      </button>
+      <button class="btn iconbtn camera-control" id="btnStop" data-i18n-aria-label="camera.stop" aria-label="Stop camera" aria-describedby="stopTooltip">
+        <svg class="ui-icon" aria-hidden="true"><use href="#icon-stop"/></svg>
+        <span class="control-tooltip" id="stopTooltip" role="tooltip" data-i18n="camera.stop">Stop camera</span>
+      </button>
     </div>
   </section>
 
@@ -73,6 +79,8 @@
   <p class="foot mono" data-i18n="footer.local">runs locally in your browser — nothing is uploaded</p>
 </div>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/></symbol>
+  <symbol id="icon-camera-switch" viewBox="0 0 24 24"><path d="M9 4h6l2 3h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3z"/><path d="M8.5 14a3.5 3.5 0 0 1 7 0m0-3v3h-3M15.5 14a3.5 3.5 0 0 1-7 0m0 3v-3h3"/></symbol>
   <symbol id="icon-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></symbol>
   <symbol id="icon-external" viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></symbol>
   <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></symbol>

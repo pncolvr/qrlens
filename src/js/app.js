@@ -3,6 +3,8 @@ import { parseQR } from "./qr.js";
 import { initTranslations, t } from "../i18n/i18n.js";
 
 const $ = id => document.getElementById(id);
+const showCameraSwitch = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)
+  && new URLSearchParams(location.search).get("showCameraSwitch") === "1";
 let result = null, view = "start", installPrompt = null;
 
 function showView(name){
@@ -22,7 +24,7 @@ function cameraError(error){
 
 const camera = createCamera({
   video: $("video"),
-  onStatus: ({ deviceCount }) => $("btnSwitch").classList.toggle("hidden", deviceCount < 2),
+  onStatus: ({ deviceCount }) => $("btnSwitch").classList.toggle("hidden", deviceCount < 2 && !showCameraSwitch),
   onError: cameraError,
   onResult(text){
     if (view !== "camera" || document.hidden || typeof text !== "string") return;
