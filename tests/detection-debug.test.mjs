@@ -34,7 +34,7 @@ test('debug retains failed region and successful whole-image attempts with disti
   assert.equal(env.canvas.width, 960);
   assert.equal(env.canvas.height, 480);
   assert.match(env.summary.textContent, /whole-image fallback succeeded/);
-  assert.match(env.list.children[0].textContent, /Region 1: no QR code \(200 × 200: no QR code\)/);
+  assert.match(env.list.children[0].textContent, /Region 1: no QR code \(200 × 200 @ 0°: no QR code\)/);
   assert.match(env.list.children[1].textContent, /Whole image: decoded/);
   assert.deepEqual(env.rects.map(rect => rect.color), ['#f59e0b', '#4ade80']);
   assert.deepEqual(Array.from(env.dashes.at(-1)), [9, 6]);
@@ -58,4 +58,15 @@ test('debug reports all failed attempts and a failed locator without claiming a 
   assert.match(env.list.children[0].textContent, /decode error/);
   env.debug.render(null);
   assert.equal(env.hidden(), true);
+});
+
+test('debug shows each rotation and its actual dimensions and outcome', () => {
+  const env = setup();
+  const region = attempt('region', 'success', 200, 100);
+  region.passes = [
+    { width: 200, height: 100, rotation: 0, outcome: 'miss' },
+    { width: 100, height: 200, rotation: 90, outcome: 'success' }
+  ];
+  env.debug.render(report([region]));
+  assert.match(env.list.children[0].textContent, /200 × 100 @ 0°: no QR code; 100 × 200 @ 90°: decoded/);
 });

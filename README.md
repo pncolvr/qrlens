@@ -29,7 +29,8 @@ Unknown content is displayed as selectable text with a copy button. Every result
 - Choose an image from your device or drop image files anywhere in the app; the first image opens locally
 - Scan the whole image, or select a QR region with mouse, touch, or keyboard
 - **Use whole image** first searches for QR finder-pattern triples in a preview capped at 1280 pixels, tries up to six proposed crops from the original image, and falls back to decoding the full image at up to 2560 pixels
-- Expand **Detection debug** to see finder responses, numbered attempts, decode resolutions, and whether full-image fallback succeeded; the preview remains available with the result
+- Image decoding tries 0°, 90°, 180°, and 270° clockwise at each resolution, stopping as soon as a code is decoded; this also applies to manual selections and full-image fallback
+- Expand **Detection debug** to see finder responses, numbered attempts, decode resolutions and rotations, and whether full-image fallback succeeded; the preview remains available with the result
 - No network uploads, scan history, or document processing
 - Installable PWA; offline scanning after the first load
 - English, Portuguese, and Spanish translations

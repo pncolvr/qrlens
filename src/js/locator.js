@@ -34,7 +34,8 @@ export function findQRRegions({ data, width, height }){
         const px = x + dx * distance * sign, py = y + dy * distance * sign;
         if (px < 0 || py < 0 || px >= width || py >= height) break;
         const same = dark(px, py) === color;
-        if (same !== (part !== (sign === -1 ? 1 : 3))) part += sign;
+        // The center and outer rings (indices 0, 2, 4) share a color.
+        if (same !== (part % 2 === 0)) part += sign;
         if (part < 0 || part > 4) break;
         runs[part]++;
         if (part === 2){ if (sign === 1) positiveCenter++; else negativeCenter++; }

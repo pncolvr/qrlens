@@ -1,5 +1,16 @@
 import { findQRRegions } from "./locator.js";
 
+// Copy whole RGBA pixels so quarter-turns introduce no interpolation or clipping.
+export function rotateClockwise({ data, width, height }){
+  const rotated = new Uint8ClampedArray(data.length);
+  const source = new Uint32Array(data.buffer, data.byteOffset, width * height);
+  const target = new Uint32Array(rotated.buffer);
+  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++){
+    target[x * height + height - 1 - y] = source[y * width + x];
+  }
+  return { data: rotated, width: height, height: width };
+}
+
 // Selection coordinates are fractions of the original image, independent of preview size.
 export function createImageScanner({ preview, stage, selection, onResult, onStatus, onReady, onSelection, onDiagnostics }){
   const canvas = document.createElement("canvas");
@@ -138,16 +149,22 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
   }
 
   function readRegion(rect, passes = [], firstPixels){
+    let lastError = null, completed = false;
     for (const maxSize of [1280, 2560]){
-      const pixels = maxSize === 1280 && firstPixels ? firstPixels : pixelsFor(rect, maxSize);
-      const pass = { width: pixels.width, height: pixels.height, outcome: "miss" };
-      passes.push(pass);
-      try {
-        const code = window.jsQR(pixels.data, pixels.width, pixels.height);
-        if (code && typeof code.data === "string"){ pass.outcome = "success"; return code; }
-      } catch(error){ pass.outcome = "error"; throw error; }
+      let pixels = maxSize === 1280 && firstPixels ? firstPixels : pixelsFor(rect, maxSize);
+      for (const rotation of [0, 90, 180, 270]){
+        const pass = { width: pixels.width, height: pixels.height, rotation, outcome: "miss" };
+        passes.push(pass);
+        try {
+          const code = window.jsQR(pixels.data, pixels.width, pixels.height);
+          completed = true;
+          if (code && typeof code.data === "string"){ pass.outcome = "success"; return code; }
+        } catch(error){ pass.outcome = "error"; lastError = error; }
+        if (rotation !== 270) pixels = rotateClockwise(pixels);
+      }
       if (Math.max(rect.width, rect.height) <= maxSize) break;
     }
+    if (!completed && lastError) throw lastError;
     return null;
   }
 

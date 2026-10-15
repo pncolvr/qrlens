@@ -11,7 +11,7 @@ export function createDetectionDebug({ container, canvas, summary, list, t }){
     list.replaceChildren();
     trace.attempts.forEach((attempt, index) => {
       const item = document.createElement("li");
-      const sizes = attempt.passes.map(pass => `${pass.width} × ${pass.height}: ${t(`debug.${pass.outcome}`)}`).join("; ");
+      const sizes = attempt.passes.map(pass => `${pass.width} × ${pass.height} @ ${pass.rotation ?? 0}°: ${t(`debug.${pass.outcome}`)}`).join("; ");
       item.textContent = t(attempt.scope === "whole" ? "debug.attemptWhole" : "debug.attemptRegion", { index: index + 1, outcome: t(`debug.${attempt.outcome}`), sizes });
       list.append(item);
     });
