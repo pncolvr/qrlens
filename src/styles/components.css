@@ -54,5 +54,14 @@
 .image-drop-overlay p{color:var(--accent);font-size:20px;text-align:center;}
 .detection-debug{margin:12px 0;padding:14px;border:1px solid var(--border);border-radius:var(--radius);}
 .detection-debug summary{cursor:pointer;color:var(--muted);font-size:13px;}
-#detectionPreview{display:block;max-width:100%;max-height:50dvh;width:auto;height:auto;margin:14px auto 0;background:#fff;}
-#detectionAttempts{padding-left:24px;font-size:12px;line-height:1.7;overflow-wrap:anywhere;}
+#detectionPreview,.detection-preview{display:block;max-width:100%;max-height:50dvh;width:auto;height:auto;margin:14px auto 0;background:#fff;}
+#detectionAttempts,.detection-attempts{padding-left:24px;font-size:12px;line-height:1.7;overflow-wrap:anywhere;}
+.result-source:empty{display:none;}
+.result-source{overflow-wrap:anywhere;}
+#pdfFilename{overflow-wrap:anywhere;font-size:20px;}
+#pdfPages{display:grid;gap:16px;margin-top:20px;}
+.pdf-page{padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);}
+.pdf-page h3{margin:0;font-size:16px;}
+.pdf-results{display:grid;gap:10px;margin-top:12px;}
+.pdf-code{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);}
+.pdf-code p{font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;max-height:9em;overflow:auto;}

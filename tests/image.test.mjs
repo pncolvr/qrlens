@@ -5,7 +5,7 @@ import { runInNewContext } from 'node:vm';
 import { createRequire } from 'node:module';
 import { findQRRegions } from '../src/js/locator.js';
 import { blankImage, paintQR } from './helpers/images.mjs';
-import { rotateClockwise } from '../src/js/image.js';
+import { createQRScanner, rotateClockwise } from '../src/js/scan.js';
 
 const source = readFileSync(new URL('../src/js/image.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replaceAll('export ', '');
 const jsQR = createRequire(import.meta.url)('../src/vendor/jsQR-1.4.0.min.js');
@@ -40,7 +40,7 @@ function setup({ width = 4000, height = 2000, decode = () => null, pixels, locat
   };
   let urlCount = 0;
   const browser = {
-    findQRRegions: locate, setTimeout,
+    findQRRegions: locate, createQRScanner, setTimeout,
     document: { createElement: () => canvas }, window: { jsQR: decode },
     URL: { createObjectURL: () => `blob:${++urlCount}`, revokeObjectURL: url => revoked.push(url) },
     Image: class { constructor(){ this.naturalWidth = width; this.naturalHeight = height; images.push(this); } }

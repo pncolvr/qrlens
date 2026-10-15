@@ -23,10 +23,12 @@ function setup({ hostname = "localhost", search = "", cameraStart = async () => 
   }
   const elements = new Map();
   const element = id => { if (!elements.has(id)) elements.set(id, new Element()); return elements.get(id); };
-  for (const view of ['camera', 'image', 'result']) element('view-' + view).classes.add('hidden');
+  for (const view of ['camera', 'image', 'pdf', 'result']) element('view-' + view).classes.add('hidden');
   element('imageDropOverlay').classes.add('hidden');
   let callbacks, imageCallbacks;
   const imageLoads = [];
+  const pdfLoads = [];
+  let pdfSelect, pdfCanceled = 0;
   let imageClears = 0, cameraStops = 0;
   const blobs = [], revoked = [], timers = [];
   const document = { getElementById: element, createElement: () => new Element(), createElementNS: () => new Element(), events: {}, addEventListener(name, callback){ this.events[name] = callback; }, body: new Element(), hidden: false };
@@ -38,6 +40,8 @@ function setup({ hostname = "localhost", search = "", cameraStart = async () => 
     supported: () => ({ secure: true, hasMedia: true }), parseQR, t: key => key,
     initTranslations: async () => {},
     createDetectionDebug: () => ({ clear(){}, render(){}, refresh(){} }),
+    createPDFView(options){ pdfSelect = options.onSelect; return { start(){}, progress(){}, update(){}, complete(){}, error(){}, stopped(){}, refresh(){}, clear(){} }; },
+    createPDFScanner: () => ({ scan: file => pdfLoads.push(file), cancel(){ pdfCanceled++; } }),
     createImageScanner(options){
       imageCallbacks = options;
       return { load: file => imageLoads.push(file), clear(){ imageClears++; }, reset(){}, decode(){}, decodeWhole(){} };
@@ -45,7 +49,7 @@ function setup({ hostname = "localhost", search = "", cameraStart = async () => 
     createCamera(options){ callbacks = options; return { start: cameraStart, switchDevice: async () => true, stop(){ cameraStops++; } }; }
   };
   runInNewContext(source, browser);
-  return { element, document, callbacks, imageCallbacks, imageLoads, imageClears: () => imageClears, cameraStops: () => cameraStops, blobs, revoked, timers };
+  return { element, document, callbacks, imageCallbacks, imageLoads, pdfLoads, pdfSelect, pdfCanceled: () => pdfCanceled, imageClears: () => imageClears, cameraStops: () => cameraStops, blobs, revoked, timers };
 }
 
 test('results open only after a decode in the visible camera view', async () => {
@@ -154,8 +158,8 @@ test('system picker buttons open the file input from each image entry point', ()
   const env = setup();
   let opens = 0;
   env.element('imageInput').events.click = () => opens++;
-  for (const id of ['btnUpload', 'btnUploadResult', 'btnChooseImage']) env.element(id).click();
-  assert.equal(opens, 3);
+  for (const id of ['btnUpload', 'btnUploadResult', 'btnChooseImage', 'btnChoosePdfFile']) env.element(id).click();
+  assert.equal(opens, 4);
 });
 
 test('dropping files during camera scanning imports the first image and hides the drop indicator', async () => {
@@ -208,7 +212,7 @@ test('invalid file drops stay in the current view and ordinary text drags keep t
   env.document.events.drop(text);
   assert.equal(text.defaultPrevented, false);
   assert.equal(env.element('imageDropOverlay').classList.contains('hidden'), true);
-  const invalid = dragEvent([{ name: 'document.pdf', type: 'application/pdf' }]);
+  const invalid = dragEvent([{ name: 'notes.txt', type: 'text/plain' }]);
   env.document.events.drop(invalid);
   assert.equal(invalid.defaultPrevented, true);
   assert.deepEqual(env.imageLoads, []);
@@ -238,4 +242,25 @@ test('dropping an image replaces the result view and a pending camera cannot ove
     assert.equal(env.element('view-image').classList.contains('hidden'), false);
     assert.equal(env.imageLoads.length, 2);
   }
+});
+
+test('PDFs use the picker or drop flow and each opened QR result retains its page', () => {
+  const env = setup();
+  const input = env.element('imageInput');
+  const first = { name: 'codes.pdf', type: 'application/pdf' };
+  input.files = [first]; input.events.change({ target: input });
+  assert.equal(env.element('view-pdf').classList.contains('hidden'), false);
+  assert.deepEqual(env.pdfLoads, [first]);
+  assert.deepEqual(env.imageLoads, []);
+  env.pdfSelect('https://example.com/pdf', { page: 3, name: first.name });
+  assert.equal(env.element('resultText').value, 'https://example.com/pdf');
+  assert.equal(env.element('resultSource').textContent, 'pdf.resultSource');
+  assert.equal(env.element('btnBackPdf').classList.contains('hidden'), false);
+  env.element('btnBackPdf').click();
+  assert.equal(env.element('view-pdf').classList.contains('hidden'), false);
+  const next = { name: 'next.PDF', type: '' };
+  env.document.events.drop(dragEvent([next]));
+  assert.deepEqual(env.pdfLoads, [first, next]);
+  env.element('btnStopPdf').click();
+  assert.ok(env.pdfCanceled() > 0);
 });

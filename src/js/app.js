@@ -2,6 +2,8 @@ import { supported, createCamera } from "./camera.js";
 import { parseQR } from "./qr.js";
 import { createImageScanner } from "./image.js";
 import { createDetectionDebug } from "./detection-debug.js";
+import { createPDFScanner } from "./pdf.js";
+import { createPDFView } from "./pdf-view.js";
 import { initTranslations, t } from "../i18n/i18n.js";
 
 const $ = id => document.getElementById(id);
@@ -13,18 +15,22 @@ const detectionDebug = createDetectionDebug({ container: $("detectionDebug"), ca
 
 function showView(name){
   if (view === "image" && name !== "image") imageScanner.clear();
+  if (["start", "camera", "image"].includes(name)){ pdfScanner.cancel(); pdfView.clear(); }
   if (name === "start" || name === "camera") detectionDebug.clear();
   view = name;
-  for (const section of ["start", "camera", "image", "result"]) $("view-" + section).classList.toggle("hidden", section !== name);
+  for (const section of ["start", "camera", "image", "pdf", "result"]) $("view-" + section).classList.toggle("hidden", section !== name);
 }
 
-function showResult(text){
-  result = { text, ...parseQR(text) };
+function showResult(text, source = null){
+  result = { text, ...parseQR(text), source };
   $("resultStatus").textContent = "";
   renderResult();
   showView("result");
   $("resultTitle").focus();
 }
+
+const pdfView = createPDFView({ heading: $("pdfFilename"), status: $("pdfStatus"), pages: $("pdfPages"), stopButton: $("btnStopPdf"), t, onSelect: showResult });
+const pdfScanner = createPDFScanner({ onStart: pdfView.start, onProgress: pdfView.progress, onPage: pdfView.update, onComplete: pdfView.complete, onError: pdfView.error });
 
 const imageScanner = createImageScanner({
   preview: $("imagePreview"), stage: $("imageStage"), selection: $("imageSelection"),
@@ -80,16 +86,23 @@ async function startCamera(switchDevice = false){
   finally { if (request === cameraRequest) $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = false; }
 }
 
-function openImage(file){
+function openFile(file){
   if (!file) return;
   importError = "";
   $("importError").textContent = "";
   cameraRequest++;
   camera.stop();
   $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = false;
-  showView("image");
-  $("imageTitle").focus();
-  imageScanner.load(file);
+  detectionDebug.clear();
+  if (file.type === "application/pdf" || /\.pdf$/i.test(file.name || "")){
+    showView("pdf");
+    $("pdfFilename").focus();
+    pdfScanner.scan(file);
+  } else {
+    showView("image");
+    $("imageTitle").focus();
+    imageScanner.load(file);
+  }
 }
 
 function hideFileDrop(){
@@ -137,6 +150,8 @@ function icon(name){
 function renderResult(){
   if (!result) return;
   $("resultTitle").textContent = t(`type.${result.type}`);
+  $("resultSource").textContent = result.source ? t("pdf.resultSource", result.source) : "";
+  $("btnBackPdf").classList.toggle("hidden", !result.source);
   $("resultText").value = result.text;
   $("resultText").rows = Math.min(7, Math.max(2, result.text.split(/\r?\n/).length));
   $("resultHint").textContent = t(result.type === "wifi" ? "wifi.hint" : result.actions.length ? "result.actionHint" : "result.textHint");
@@ -166,13 +181,13 @@ function renderResult(){
 }
 
 $("btnStart").addEventListener("click", () => startCamera());
-for (const id of ["btnUpload", "btnUploadResult", "btnChooseImage"]){
+for (const id of ["btnUpload", "btnUploadResult", "btnChooseImage", "btnChoosePdfFile"]){
   $(id).addEventListener("click", () => $("imageInput").click());
 }
 $("imageInput").addEventListener("change", event => {
   const file = event.target.files?.[0];
   event.target.value = ""; // Allow choosing the same file again.
-  openImage(file);
+  openFile(file);
 });
 document.addEventListener("dragenter", event => {
   if (!isFileDrag(event)) return;
@@ -193,9 +208,9 @@ document.addEventListener("drop", event => {
   if (!isFileDrag(event) && !event.dataTransfer?.files?.length) return;
   event.preventDefault(); // Keep the browser from navigating to the dropped file.
   const file = Array.from(event.dataTransfer.files).find(file => file.type
-    ? file.type.startsWith("image/")
-    : /\.(?:png|jpe?g|jfif|gif|webp|bmp|avif|ico|svg|heic|heif|tiff?)$/i.test(file.name));
-  if (file) openImage(file);
+    ? file.type.startsWith("image/") || file.type === "application/pdf"
+    : /\.(?:pdf|png|jpe?g|jfif|gif|webp|bmp|avif|ico|svg|heic|heif|tiff?)$/i.test(file.name));
+  if (file) openFile(file);
   else {
     importError = "image.invalidDrop";
     $("importError").textContent = t(importError);
@@ -206,6 +221,9 @@ window.addEventListener("blur", hideFileDrop);
 $("btnDecodeImage").addEventListener("click", () => imageScanner.decode());
 $("btnWholeImage").addEventListener("click", () => imageScanner.decodeWhole());
 $("btnCancelImage").addEventListener("click", () => { showView("start"); $("btnUpload").focus(); });
+$("btnStopPdf").addEventListener("click", () => { pdfScanner.cancel(); pdfView.stopped(); });
+$("btnExitPdf").addEventListener("click", () => { showView("start"); $("btnUpload").focus(); });
+$("btnBackPdf").addEventListener("click", () => { showView("pdf"); $("pdfFilename").focus(); });
 $("btnSwitch").addEventListener("click", () => startCamera(true));
 $("btnScanAgain").addEventListener("click", () => startCamera());
 $("btnCopy").addEventListener("click", () => copy(result.text));
@@ -213,7 +231,7 @@ $("btnStop").addEventListener("click", () => { camera.stop(); showView("start");
 document.addEventListener("visibilitychange", () => {
   if (document.hidden){ hideFileDrop(); camera.stop(); if (view === "camera") showView("start"); }
 });
-window.addEventListener("pagehide", () => { hideFileDrop(); camera.stop(); if (view === "image") showView("start"); });
+window.addEventListener("pagehide", () => { hideFileDrop(); camera.stop(); pdfScanner.cancel(); if (["image", "pdf"].includes(view)) showView("start"); });
 
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
@@ -238,6 +256,7 @@ initTranslations({ selector: $("languageSelect") }).then(() => {
     if (importError) $("importError").textContent = t(importError);
     renderSelection();
     detectionDebug.refresh();
+    pdfView.refresh();
   });
 }).catch(error => { $("startError").textContent = error.message; });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(console.error);

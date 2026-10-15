@@ -1,20 +1,10 @@
 import { findQRRegions } from "./locator.js";
-
-// Copy whole RGBA pixels so quarter-turns introduce no interpolation or clipping.
-export function rotateClockwise({ data, width, height }){
-  const rotated = new Uint8ClampedArray(data.length);
-  const source = new Uint32Array(data.buffer, data.byteOffset, width * height);
-  const target = new Uint32Array(rotated.buffer);
-  for (let y = 0; y < height; y++) for (let x = 0; x < width; x++){
-    target[x * height + height - 1 - y] = source[y * width + x];
-  }
-  return { data: rotated, width: height, height: width };
-}
+import { createQRScanner } from "./scan.js";
 
 // Selection coordinates are fractions of the original image, independent of preview size.
 export function createImageScanner({ preview, stage, selection, onResult, onStatus, onReady, onSelection, onDiagnostics }){
   const canvas = document.createElement("canvas");
-  const context = canvas.getContext("2d", { willReadFrequently: true });
+  const scanner = createQRScanner({ canvas, decoder: (...args) => window.jsQR(...args), locate: findQRRegions });
   let image = null, imageURL = null, generation = 0, drag = null, busy = false;
   let region = { x: 0, y: 0, width: 1, height: 1 };
   const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
@@ -138,36 +128,6 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
     onStatus("image.instructions");
   });
 
-  function pixelsFor(rect, maxSize){
-    const scale = Math.min(1, maxSize / Math.max(rect.width, rect.height));
-    canvas.width = Math.max(1, Math.round(rect.width * scale));
-    canvas.height = Math.max(1, Math.round(rect.height * scale));
-    context.fillStyle = "#fff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, canvas.width, canvas.height);
-    return context.getImageData(0, 0, canvas.width, canvas.height);
-  }
-
-  function readRegion(rect, passes = [], firstPixels){
-    let lastError = null, completed = false;
-    for (const maxSize of [1280, 2560]){
-      let pixels = maxSize === 1280 && firstPixels ? firstPixels : pixelsFor(rect, maxSize);
-      for (const rotation of [0, 90, 180, 270]){
-        const pass = { width: pixels.width, height: pixels.height, rotation, outcome: "miss" };
-        passes.push(pass);
-        try {
-          const code = window.jsQR(pixels.data, pixels.width, pixels.height);
-          completed = true;
-          if (code && typeof code.data === "string"){ pass.outcome = "success"; return code; }
-        } catch(error){ pass.outcome = "error"; lastError = error; }
-        if (rotation !== 270) pixels = rotateClockwise(pixels);
-      }
-      if (Math.max(rect.width, rect.height) <= maxSize) break;
-    }
-    if (!completed && lastError) throw lastError;
-    return null;
-  }
-
   function decode(){
     if (!image || drag || busy) return;
     onDiagnostics?.(null);
@@ -177,7 +137,7 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
       const width = Math.max(1, Math.min(image.naturalWidth - x, Math.ceil(region.width * image.naturalWidth)));
       const height = Math.max(1, Math.min(image.naturalHeight - y, Math.ceil(region.height * image.naturalHeight)));
       // Explicit selection never searches outside its bounds.
-      const code = readRegion({ x, y, width, height });
+      const code = scanner.readRegion(image, { x, y, width, height });
       if (code){ onResult(code.data); return; }
       onStatus("image.noCode");
     } catch {
@@ -192,46 +152,9 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
     onReady(false);
     const request = generation;
     const current = () => request === generation;
-    // Let statuses and debug attempts paint between bounded chunks of work.
-    const pause = () => new Promise(resolve => setTimeout(resolve, 0));
-    const full = { x: 0, y: 0, width: image.naturalWidth, height: image.naturalHeight };
-    const report = { image, finders: [], attempts: [], proposals: 0, phase: "regions", locatorFailed: false };
     try {
-      onStatus("image.locating");
-      await pause();
-      if (!current()) return;
-      let analysis, regions = [];
-      try {
-        analysis = pixelsFor(full, 1280);
-        const located = findQRRegions(analysis);
-        const sx = full.width / analysis.width, sy = full.height / analysis.height;
-        report.finders = located.finders.map(point => ({ x: point.x * sx, y: point.y * sy, width: point.module * 7 * sx, height: point.module * 7 * sy }));
-        regions = located.regions.map(rect => {
-          const x = Math.max(0, Math.floor(rect.x * sx)), y = Math.max(0, Math.floor(rect.y * sy));
-          return { x, y, width: Math.min(full.width - x, Math.ceil(rect.width * sx)), height: Math.min(full.height - y, Math.ceil(rect.height * sy)) };
-        });
-      } catch { report.locatorFailed = true; }
-      report.proposals = regions.length;
-      onDiagnostics?.(report);
-      for (const rect of [...regions, full]){
-        const whole = rect === full;
-        report.phase = whole ? "fallback" : "regions";
-        onStatus(whole ? (regions.length ? "image.fallbackRegions" : "image.fallbackNoRegions") : "image.tryingRegions");
-        onDiagnostics?.(report);
-        await pause();
-        if (!current()) return;
-        const attempt = { rect, scope: whole ? "whole" : "region", passes: [], outcome: "miss" };
-        report.attempts.push(attempt);
-        let code;
-        try {
-          code = readRegion(rect, attempt.passes, whole ? analysis : undefined);
-          if (code) attempt.outcome = "success";
-        } catch { attempt.outcome = "error"; }
-        report.phase = code || whole ? "complete" : "regions";
-        onDiagnostics?.(report);
-        if (code){ onResult(code.data); return; }
-      }
-      onStatus(report.attempts.at(-1)?.outcome === "error" ? "image.decodeFailed" : "image.noCodeWhole");
+      const report = await scanner.scan(image, { isCurrent: current, onStatus, onDiagnostics });
+      if (current() && report?.results.length) onResult(report.results[0].text);
     } catch {
       if (current()) onStatus("image.decodeFailed");
     } finally {

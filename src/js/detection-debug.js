@@ -1,4 +1,4 @@
-export function createDetectionDebug({ container, canvas, summary, list, t }){
+export function createDetectionDebug({ container, canvas, summary, list, t, maxPreviewSize = 960 }){
   let trace = null;
 
   function refresh(){
@@ -7,12 +7,13 @@ export function createDetectionDebug({ container, canvas, summary, list, t }){
     let key = trace.phase === "fallback" ? "debug.fallback" : "debug.regions";
     if (trace.phase === "complete") key = success < 0 ? "debug.failed" : trace.attempts[success].scope === "whole" ? "debug.successWhole" : "debug.successRegion";
     summary.textContent = t(key, { count: trace.proposals, index: success + 1 });
+    if (trace.count > 1 && trace.phase === "complete") summary.textContent = t("debug.multiple", { count: trace.count });
     if (trace.locatorFailed) summary.textContent += ` ${t("debug.locatorFailed")}`;
     list.replaceChildren();
     trace.attempts.forEach((attempt, index) => {
       const item = document.createElement("li");
       const sizes = attempt.passes.map(pass => `${pass.width} × ${pass.height} @ ${pass.rotation ?? 0}°: ${t(`debug.${pass.outcome}`)}`).join("; ");
-      item.textContent = t(attempt.scope === "whole" ? "debug.attemptWhole" : "debug.attemptRegion", { index: index + 1, outcome: t(`debug.${attempt.outcome}`), sizes });
+      item.textContent = t(attempt.scope === "whole" ? "debug.attemptWhole" : attempt.scope === "tile" ? "debug.attemptTile" : "debug.attemptRegion", { index: index + 1, outcome: t(`debug.${attempt.outcome}`), sizes });
       list.append(item);
     });
   }
@@ -28,14 +29,15 @@ export function createDetectionDebug({ container, canvas, summary, list, t }){
   function render(report){
     if (!report){ clear(); return; }
     // Keep only the small trace, never the original image, after the result opens.
-    trace = { phase: report.phase, proposals: report.proposals, locatorFailed: report.locatorFailed, attempts: report.attempts.map(attempt => ({ ...attempt, passes: [...attempt.passes] })) };
+    trace = { phase: report.phase, proposals: report.proposals, count: report.results?.length || 0, locatorFailed: report.locatorFailed, attempts: report.attempts.map(attempt => ({ ...attempt, passes: [...attempt.passes] })) };
     container.classList.remove("hidden");
-    const scale = Math.min(1, 960 / Math.max(report.image.naturalWidth, report.image.naturalHeight));
-    canvas.width = Math.max(1, Math.round(report.image.naturalWidth * scale));
-    canvas.height = Math.max(1, Math.round(report.image.naturalHeight * scale));
+    const width = report.image.naturalWidth || report.image.width, height = report.image.naturalHeight || report.image.height;
+    const scale = Math.min(1, maxPreviewSize / Math.max(width, height));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
     const context = canvas.getContext("2d");
     if (!context){ refresh(); return; }
-    const sx = canvas.width / report.image.naturalWidth, sy = canvas.height / report.image.naturalHeight;
+    const sx = canvas.width / width, sy = canvas.height / height;
     context.fillStyle = "#fff";
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(report.image, 0, 0, canvas.width, canvas.height);
