@@ -22,7 +22,7 @@ function showView(name){
 }
 
 function showResult(text, source = null){
-  result = { text, ...parseQR(text), source };
+  result = { text, ...parseQR(text), source: source?.page ? source : null, unverified: source?.verified === false };
   $("resultStatus").textContent = "";
   renderResult();
   showView("result");
@@ -34,7 +34,7 @@ const pdfScanner = createPDFScanner({ onStart: pdfView.start, onProgress: pdfVie
 
 const imageScanner = createImageScanner({
   preview: $("imagePreview"), stage: $("imageStage"), selection: $("imageSelection"),
-  onResult(text){ if (view === "image" && !document.hidden) showResult(text); },
+  onResult(text, metadata){ if (view === "image" && !document.hidden) showResult(text, metadata); },
   onStatus(key){ imageStatus = key; $("imageStatus").textContent = t(key); },
   onReady(ready){ $("btnDecodeImage").disabled = $("btnWholeImage").disabled = !ready; },
   onSelection(region){ selectedRegion = { ...region }; renderSelection(); },
@@ -150,6 +150,7 @@ function icon(name){
 function renderResult(){
   if (!result) return;
   $("resultTitle").textContent = t(`type.${result.type}`);
+  $("resultWarning").textContent = result.unverified ? t("result.unverified") : "";
   $("resultSource").textContent = result.source ? t("pdf.resultSource", result.source) : "";
   $("btnBackPdf").classList.toggle("hidden", !result.source);
   $("resultText").value = result.text;

@@ -34,7 +34,7 @@ test('debug retains failed region and successful whole-image attempts with disti
   assert.equal(env.canvas.width, 960);
   assert.equal(env.canvas.height, 480);
   assert.match(env.summary.textContent, /whole-image fallback succeeded/);
-  assert.match(env.list.children[0].textContent, /Region 1: no QR code \(200 × 200 @ 0°: no QR code\)/);
+  assert.match(env.list.children[0].textContent, /Region 1: no QR decoded \(200 × 200 @ 0°: no QR decoded\)/);
   assert.match(env.list.children[1].textContent, /Whole image: decoded/);
   assert.deepEqual(env.rects.map(rect => rect.color), ['#f59e0b', '#4ade80']);
   assert.deepEqual(Array.from(env.dashes.at(-1)), [9, 6]);
@@ -68,5 +68,41 @@ test('debug shows each rotation and its actual dimensions and outcome', () => {
     { width: 100, height: 200, rotation: 90, outcome: 'success' }
   ];
   env.debug.render(report([region]));
-  assert.match(env.list.children[0].textContent, /200 × 100 @ 0°: no QR code; 100 × 200 @ 90°: decoded/);
+  assert.match(env.list.children[0].textContent, /200 × 100 @ 0°: no QR decoded; 100 × 200 @ 90°: decoded/);
+});
+
+test('debug distinguishes located but unreadable QR payloads from unconfirmed patterns and no pattern', () => {
+  const env = setup();
+  const trace = report([attempt('whole', 'unreadable', 1600, 800)]);
+  const reason = 'ChecksumError @ QRDecoder.cpp:337';
+  trace.unreadable = [{ x: 80, y: 100, width: 200, height: 200, reasons: [reason] }];
+  trace.attempts[0].errors = [reason];
+  env.debug.render(trace);
+  assert.match(env.summary.textContent, /Located 1 QR code.*could not be verified/);
+  assert.match(env.list.children[0].textContent, /QR located; payload unreadable/);
+  assert.ok(env.summary.textContent.includes(`Reason: ${reason}`));
+  assert.ok(env.list.children[0].textContent.includes(`Reason: ${reason}`));
+  env.setLanguage('pt'); env.debug.refresh();
+  assert.ok(env.summary.textContent.includes(`Motivo: ${reason}`));
+  env.setLanguage('en');
+  assert.equal(env.rects.at(-1).color, '#f87171');
+  trace.unreadable = [];
+  trace.attempts[0].outcome = 'miss';
+  env.debug.render(trace);
+  assert.match(env.summary.textContent, /QR-like finder patterns.*unconfirmed/);
+  trace.proposals = 0;
+  env.debug.render(trace);
+  assert.match(env.summary.textContent, /No QR code decoded/);
+});
+
+test('debug keeps partial success and remaining unreadable QR codes visible together', () => {
+  const env = setup();
+  const trace = report([attempt('whole', 'success', 1600, 800)]);
+  trace.results = [{ text: 'first' }, { text: 'second' }];
+  trace.unreadable = [{ x: 80, y: 100, width: 200, height: 200 }];
+  env.debug.render(trace);
+  assert.match(env.summary.textContent, /Decoded 2 distinct.*Located 1 QR/);
+  assert.match(env.summary.textContent, /The decoder did not provide a reason/);
+  env.setLanguage('pt'); env.debug.refresh();
+  assert.match(env.summary.textContent, /Localizados 1 códigos QR/);
 });

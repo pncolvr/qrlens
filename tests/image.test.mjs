@@ -10,7 +10,7 @@ import { createQRScanner, rotateClockwise } from '../src/js/scan.js';
 const source = readFileSync(new URL('../src/js/image.js', import.meta.url), 'utf8').replace(/^import .*;\n/gm, '').replaceAll('export ', '');
 const jsQR = createRequire(import.meta.url)('../src/vendor/jsQR-1.4.0.min.js');
 
-function setup({ width = 4000, height = 2000, decode = () => null, pixels, locate = findQRRegions } = {}){
+function setup({ width = 4000, height = 2000, decode = () => null, pixels, locate = findQRRegions, workerScan } = {}){
   function element(){
     const classes = new Set();
     return {
@@ -22,7 +22,7 @@ function setup({ width = 4000, height = 2000, decode = () => null, pixels, locat
     };
   }
   const stage = element(), preview = element(), selection = element();
-  const images = [], draws = [], results = [], statuses = [], ready = [], revoked = [], diagnostics = [];
+  const images = [], draws = [], results = [], resultMetadata = [], statuses = [], ready = [], revoked = [], diagnostics = [];
   const canvas = { getContext: () => context };
   const context = {
     fillRect(){},
@@ -40,18 +40,32 @@ function setup({ width = 4000, height = 2000, decode = () => null, pixels, locat
   };
   let urlCount = 0;
   const browser = {
-    findQRRegions: locate, createQRScanner, setTimeout,
+    findQRRegions: locate, createQRScanner: workerScan ? () => ({ scan: workerScan }) : createQRScanner, Worker: workerScan ? class {} : undefined, setTimeout, AbortController,
     document: { createElement: () => canvas }, window: { jsQR: decode },
     URL: { createObjectURL: () => `blob:${++urlCount}`, revokeObjectURL: url => revoked.push(url) },
     Image: class { constructor(){ this.naturalWidth = width; this.naturalHeight = height; images.push(this); } }
   };
   const createImageScanner = runInNewContext(source + '; createImageScanner;', browser);
-  const scanner = createImageScanner({ stage, preview, selection, onResult: text => results.push(text), onStatus: key => statuses.push(key), onReady: value => ready.push(value), onDiagnostics(report){ diagnostics.push(report ? JSON.parse(JSON.stringify({ ...report, image: undefined })) : null); } });
+  const scanner = createImageScanner({ stage, preview, selection, onResult(text, metadata){ results.push(text); resultMetadata.push(metadata); }, onStatus: key => statuses.push(key), onReady: value => ready.push(value), onDiagnostics(report){ diagnostics.push(report ? JSON.parse(JSON.stringify({ ...report, image: undefined })) : null); } });
   const pointer = (name, x, y) => stage.events[name]({ clientX: x, clientY: y, pointerId: 1, isPrimary: true, button: 0, preventDefault(){} });
   const key = (key, shiftKey = false) => stage.events.keydown({ key, shiftKey, preventDefault(){} });
   async function load(){ const pending = scanner.load({}); images.at(-1).onload(); await pending; }
-  return { scanner, stage, preview, selection, images, draws, results, statuses, ready, revoked, diagnostics, pointer, key, load, canvas };
+  return { scanner, stage, preview, selection, images, draws, results, resultMetadata, statuses, ready, revoked, diagnostics, pointer, key, load, canvas };
 }
+
+test('selected regions can return warned checksum-failed text without scanning outside the selection', async () => {
+  const env = setup({ workerScan: async () => ({ results: [], unverified: [{ text: 'partial', verified: false, error: 'ChecksumError' }] }) });
+  await env.load();
+  env.pointer('pointerdown', 310, 170);
+  env.pointer('pointermove', 110, 70);
+  env.pointer('pointerup', 110, 70);
+  await env.scanner.decode();
+  assert.deepEqual(env.results, ['partial']);
+  assert.equal(env.resultMetadata[0].verified, false);
+  assert.equal(env.resultMetadata[0].error, 'ChecksumError');
+  assert.deepEqual(env.draws[0].slice(1), [1000, 500, 2000, 1000, 0, 0, 2000, 1000]);
+  assert.equal(env.draws.length, 1);
+});
 
 test('image selection maps reverse drags and preview coordinates to original pixels', async () => {
   const env = setup();
@@ -274,7 +288,7 @@ test('candidate crops try all four orientations and stop at the first real QR de
   for (const [rotation, corner] of [[0, 20], [90, 100], [180, 140], [270, 60]]){
     const image = paintQR(blankImage(180, 120), { scale: 2, left: 50, top: 20 });
     markCorners(image, rect);
-    const env = setup({ ...image, pixels: image.data, locate: () => ({ finders: [], regions: [rect] }), decode(data, width, height){
+    const env = setup({ ...image, pixels: image.data, locate: () => ({ finders: [], regions: [{ ...rect, finders: findQRRegions(image).regions[0].finders }] }), decode(data, width, height){
       // Gate on orientation so this exercises retries even though jsQR usually handles rotation itself.
       return data[0] === corner ? jsQR(data, width, height) : null;
     } });

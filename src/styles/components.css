@@ -58,6 +58,8 @@
 #detectionAttempts,.detection-attempts{padding-left:24px;font-size:12px;line-height:1.7;overflow-wrap:anywhere;}
 .result-source:empty{display:none;}
 .result-source{overflow-wrap:anywhere;}
+.qr-warning{color:#fbbf24;font-weight:600;overflow-wrap:anywhere;}
+.qr-warning:empty{display:none;}
 #pdfFilename{overflow-wrap:anywhere;font-size:20px;}
 #pdfPages{display:grid;gap:16px;margin-top:20px;}
 .pdf-page{padding:16px;border:1px solid var(--border);border-radius:var(--radius);background:var(--panel);}

@@ -6,6 +6,7 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
   const canvas = document.createElement("canvas");
   const scanner = createQRScanner({ canvas, decoder: (...args) => window.jsQR(...args), locate: findQRRegions });
   let image = null, imageURL = null, generation = 0, drag = null, busy = false;
+  let scanAbort = null;
   let region = { x: 0, y: 0, width: 1, height: 1 };
   const clamp = (value, min = 0, max = 1) => Math.max(min, Math.min(max, value));
 
@@ -26,6 +27,8 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
   }
 
   function clear(){
+    scanAbort?.abort();
+    scanAbort = null;
     generation++;
     busy = false;
     image = null;
@@ -137,6 +140,7 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
       const width = Math.max(1, Math.min(image.naturalWidth - x, Math.ceil(region.width * image.naturalWidth)));
       const height = Math.max(1, Math.min(image.naturalHeight - y, Math.ceil(region.height * image.naturalHeight)));
       // Explicit selection never searches outside its bounds.
+      if (typeof Worker !== "undefined") return decodeSelection({ x, y, width, height });
       const code = scanner.readRegion(image, { x, y, width, height });
       if (code){ onResult(code.data); return; }
       onStatus("image.noCode");
@@ -148,17 +152,41 @@ export function createImageScanner({ preview, stage, selection, onResult, onStat
   async function decodeWhole(){
     if (!image || drag || busy) return;
     reset();
+    return scanSource(image);
+  }
+
+  async function decodeSelection(rect){
+    const selected = document.createElement("canvas");
+    try {
+      const scale = Math.min(1, 2560 / Math.max(rect.width, rect.height));
+      selected.width = Math.max(1, Math.round(rect.width * scale));
+      selected.height = Math.max(1, Math.round(rect.height * scale));
+      const context = selected.getContext("2d");
+      context.fillStyle = "#fff";
+      context.fillRect(0, 0, selected.width, selected.height);
+      context.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, selected.width, selected.height);
+      await scanSource(selected);
+    } catch { onStatus("image.decodeFailed"); }
+    finally { selected.width = selected.height = 0; }
+  }
+
+  async function scanSource(source){
     busy = true;
     onReady(false);
     const request = generation;
     const current = () => request === generation;
+    scanAbort = new AbortController();
     try {
-      const report = await scanner.scan(image, { isCurrent: current, onStatus, onDiagnostics });
+      const report = await scanner.scan(source, { isCurrent: current, signal: scanAbort.signal, onStatus, onDiagnostics });
       if (current() && report?.results.length) onResult(report.results[0].text);
+      else if (current() && report?.unverified?.length){
+        const code = report.unverified[0];
+        onResult(code.text, { verified: false, error: code.error });
+      }
     } catch {
       if (current()) onStatus("image.decodeFailed");
     } finally {
-      if (current()){ busy = false; onReady(true); }
+      if (current()){ scanAbort = null; busy = false; onReady(true); }
     }
   }
 

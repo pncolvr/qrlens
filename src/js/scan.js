@@ -53,7 +53,16 @@ export function createQRScanner({ canvas, decoder, locate = findQRRegions, creat
     return null;
   }
 
-  async function scan(source, { collectAll = false, analysisMaxSize = 1280, maxSizes = [1280, 2560], onDiagnostics = () => {}, onStatus = () => {}, isCurrent = () => true } = {}){
+  async function scan(source, { collectAll = false, analysisMaxSize = 1280, maxSizes = [1280, 2560], onDiagnostics = () => {}, onStatus = () => {}, isCurrent = () => true, signal } = {}){
+    if (typeof Worker !== "undefined"){
+      try {
+        const { scanInWorkers } = await import("./worker-scan.js");
+        return await scanInWorkers(source, { collectAll, analysisMaxSize, maxSizes, onDiagnostics, onStatus, isCurrent, signal }, { pixelsFor, locate, createCanvas });
+      } catch {
+        // Browsers that block module workers keep the established JS scanner.
+        if (signal?.aborted || !isCurrent()) return null;
+      }
+    }
     const full = { x: 0, y: 0, ...dimensions(source) };
     const report = { image: source, finders: [], attempts: [], results: [], proposals: 0, phase: "regions", locatorFailed: false };
     let analysis, regions = [], masked = null, maskContext = null;
@@ -100,7 +109,7 @@ export function createQRScanner({ canvas, decoder, locate = findQRRegions, creat
         analysis = pixelsFor(source, full, analysisMaxSize);
         const located = locate(analysis), sx = full.width / analysis.width, sy = full.height / analysis.height;
         report.finders = located.finders.map(point => ({ x: point.x * sx, y: point.y * sy, width: point.module * 7 * sx, height: point.module * 7 * sy }));
-        regions = located.regions.map(rect => {
+        regions = located.regions.filter(rect => rect.finders?.length === 3).map(rect => {
           const x = Math.max(0, Math.floor(rect.x * sx)), y = Math.max(0, Math.floor(rect.y * sy));
           return { x, y, width: Math.min(full.width - x, Math.ceil(rect.width * sx)), height: Math.min(full.height - y, Math.ceil(rect.height * sy)) };
         });
@@ -121,27 +130,12 @@ export function createQRScanner({ canvas, decoder, locate = findQRRegions, creat
       onStatus(regions.length ? "image.fallbackRegions" : "image.fallbackNoRegions");
       onDiagnostics(report);
       // Mask decoded symbols in a working copy to let jsQR find other codes on the page.
-      let tiled = false;
       while (isCurrent()){
         const cached = !masked && analysisMaxSize === maxSizes[0] ? analysis : undefined;
         const code = await attempt(full, "whole", cached);
         if (!isCurrent()) return null;
         const continueScanning = code ? remember(code) : false;
         onDiagnostics(report);
-        if (!code && collectAll && !tiled){
-          // Several symbols can confuse a single-symbol decoder. Overlapping
-          // quadrants provide a second search strategy when full-page decoding misses.
-          tiled = true;
-          const width = Math.ceil(full.width * .6), height = Math.ceil(full.height * .6);
-          let recovered = false;
-          for (const y of [0, full.height - height]) for (const x of [0, full.width - width]){
-            const found = await attempt({ x, y, width, height }, "tile");
-            if (!isCurrent()) return null;
-            if (found) recovered = remember(found) || recovered;
-            onDiagnostics(report);
-          }
-          if (recovered) continue;
-        }
         if (!code || !collectAll || !continueScanning) break;
       }
       report.phase = "complete";

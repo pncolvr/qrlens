@@ -1,6 +1,6 @@
 // Bump this version whenever a cached app-shell asset changes.
-const CACHE_NAME = "qr-lens-shell-v98";
-const APP_SHELL = ["./", "./index.html", "./js/app.js", "./js/camera.js", "./js/image.js", "./js/scan.js", "./js/pdf.js", "./js/pdf-view.js", "./vendor/pdfjs-6.4.299/assets.json", "./js/locator.js", "./js/detection-debug.js", "./js/qr.js", "./vendor/jsQR-1.4.0.min.js", "./i18n/i18n.js", "./i18n/en.json", "./i18n/pt.json", "./i18n/es.json", "./styles/base.css", "./styles/layout.css", "./styles/components.css", "./manifest.webmanifest", "./assets/images/icon.svg", "./assets/images/icon-192.png", "./assets/images/icon-512.png"];
+const CACHE_NAME = "qr-lens-shell-v103";
+const APP_SHELL = ["./", "./index.html", "./js/app.js", "./js/camera.js", "./js/image.js", "./js/scan.js", "./js/scan-workers.js", "./js/scan-worker.js", "./js/worker-scan.js", "./vendor/zxing-wasm-3.1.5/reader/index.js", "./vendor/zxing-wasm-3.1.5/share.js", "./vendor/zxing-wasm-3.1.5/reader/zxing_reader.wasm", "./js/pdf.js", "./js/pdf-view.js", "./vendor/pdfjs-6.4.299/assets.json", "./js/locator.js", "./js/detection-debug.js", "./js/qr.js", "./vendor/jsQR-1.4.0.min.js", "./i18n/i18n.js", "./i18n/en.json", "./i18n/pt.json", "./i18n/es.json", "./styles/base.css", "./styles/layout.css", "./styles/components.css", "./manifest.webmanifest", "./assets/images/icon.svg", "./assets/images/icon-192.png", "./assets/images/icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil((async () => {

@@ -74,3 +74,26 @@ test('PDF page failures, blank pages, and stopped pages have distinct visible st
   env.view.clear();
   assert.equal(env.pages.children.length, 0);
 });
+
+test('PDF page status distinguishes unreadable QR payloads and partial success from no QR found', () => {
+  const env = setup();
+  env.view.start({ name: 'codes.pdf' });
+  env.view.update({ page: 1, state: 'complete', results: [], unreadable: 1 });
+  env.view.update({ page: 2, state: 'complete', results: [{ text: 'decoded' }], unreadable: 2 });
+  assert.match(env.pages.children[0].children[1].textContent, /Located 1 QR.*could not be verified/);
+  assert.doesNotMatch(env.pages.children[0].children[1].textContent, /No QR code/);
+  assert.match(env.pages.children[1].children[1].textContent, /Found 1 QR.*Located 2 QR/);
+});
+
+test('checksum-failed text is visibly warned and preserves that warning when opened', () => {
+  const env = setup();
+  env.view.start({ name: 'codes.pdf' });
+  env.view.update({ page: 1, state: 'complete', results: [], unreadable: 1, unverified: [{ text: 'partial text', verified: false, error: 'ChecksumError' }] });
+  const card = env.pages.children[0].children[2].children[0];
+  assert.match(card.children[0].textContent, /Unverified QR text.*incomplete or incorrect/);
+  assert.equal(card.children[1].textContent, 'partial text');
+  card.children[2].events.click();
+  assert.equal(env.selected[0][1].verified, false);
+  assert.equal(env.selected[0][1].error, 'ChecksumError');
+  assert.equal(env.selected[0][1].page, 1);
+});

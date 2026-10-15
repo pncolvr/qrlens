@@ -21,12 +21,21 @@ test('collect-all finds multiple QR payloads and deduplicates repeated content w
 });
 
 test('full-page fallback finds multiple symbols even when the finder proposer misses all of them', async () => {
-  const image = paintQR(paintQR(blankImage(700, 400), { left: 30, top: 40, scale: 3 }), { left: 450, top: 240, scale: 3, name: 'text' });
+  const image = paintQR(paintQR(blankImage(700, 400), { left: 30, top: 40, scale: 3 }), { left: 450, top: 240, scale: 2, name: 'text' });
   const scanner = createQRScanner({ canvas: createCanvas(), createCanvas, decoder: jsQR, locate: () => ({ finders: [], regions: [] }) });
   const report = await scanner.scan(image, { collectAll: true });
   assert.equal(report.results.length, 2);
   assert.equal(report.attempts.filter(attempt => attempt.outcome === 'success').length, 2);
   assert.equal(report.attempts.at(-1).outcome, 'miss');
+  assert.ok(report.attempts.every(attempt => attempt.scope === 'whole'));
+});
+
+test('the JS scanner also excludes regions without a three-finder proposal and never sends tiles', async () => {
+  const image = blankImage(300, 200);
+  const scanner = createQRScanner({ canvas: createCanvas(), createCanvas, decoder: jsQR, locate: () => ({ finders: [], regions: [{ x: 10, y: 10, width: 60, height: 60, finders: [{ x: 20, y: 20 }, { x: 40, y: 20 }] }] }) });
+  const report = await scanner.scan(image, { collectAll: true });
+  assert.equal(report.proposals, 0);
+  assert.ok(report.attempts.every(attempt => attempt.scope === 'whole'));
 });
 
 test('rotation locations map back to original page coordinates before masking', () => {

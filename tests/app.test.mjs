@@ -74,6 +74,19 @@ test('results open only after a decode in the visible camera view', async () => 
   assert.equal(link.rel, 'noopener noreferrer');
 });
 
+test('unverified result warnings follow PDF and image text and clear for validated results', () => {
+  const env = setup();
+  env.pdfSelect('partial text', { page: 1, name: 'codes.pdf', verified: false, error: 'ChecksumError' });
+  assert.equal(env.element('resultWarning').textContent, 'result.unverified');
+  assert.equal(env.element('btnBackPdf').classList.contains('hidden'), false);
+  env.pdfSelect('validated', { page: 1, name: 'codes.pdf' });
+  assert.equal(env.element('resultWarning').textContent, '');
+  env.element('imageInput').events.change({ target: { files: [{ name: 'image.png' }] } });
+  env.imageCallbacks.onResult('partial image text', { verified: false, error: 'ChecksumError' });
+  assert.equal(env.element('resultWarning').textContent, 'result.unverified');
+  assert.equal(env.element('btnBackPdf').classList.contains('hidden'), true);
+});
+
 test('contact and calendar downloads start on a tap and release temporary URLs', async () => {
   for (const [text, name, mime] of [
     ['MECARD:N:Doe,Jane;EMAIL:jane@example.com;;', 'contact.vcf', 'text/vcard;charset=utf-8'],

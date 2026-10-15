@@ -21,12 +21,18 @@ export function createPDFView({ heading, status, pages, stopButton, t, onSelect 
   function refreshPage(entry){
     entry.heading.textContent = t("pdf.page", { page: entry.page });
     entry.status.textContent = t(entry.state === "error" ? "pdf.pageError" : entry.state === "stopped" ? "pdf.pageStopped" : entry.state === "complete" ? entry.results.length ? "pdf.found" : "pdf.noCode" : entry.state === "rendering" ? "pdf.rendering" : "pdf.scanning", { count: entry.results.length });
+    if (entry.state === "complete" && entry.unreadable) entry.status.textContent = (entry.results.length ? `${entry.status.textContent} ` : "") + t("pdf.unreadable", { count: entry.unreadable });
     entry.resultList.replaceChildren();
-    entry.results.forEach((result, index) => {
+    [...entry.results, ...entry.unverified].forEach((result, index) => {
       const card = element("div", "pdf-code"), text = element("p", "mono"), button = element("button", "btn");
+      if (result.verified === false){
+        const warning = element("p", "qr-warning");
+        warning.textContent = t("result.unverified");
+        card.append(warning);
+      }
       text.textContent = result.text;
       button.textContent = t("pdf.openResult", { index: index + 1, type: t(`type.${parseQR(result.text).type}`) });
-      button.addEventListener("click", () => onSelect(result.text, { page: entry.page, name: filename }));
+      button.addEventListener("click", () => onSelect(result.text, { page: entry.page, name: filename, ...(result.verified === false ? { verified: false, error: result.error } : {}) }));
       card.append(text, button); entry.resultList.append(card);
     });
     for (const [size, pass] of entry.passes){
@@ -40,11 +46,13 @@ export function createPDFView({ heading, status, pages, stopButton, t, onSelect 
     if (!entry){
       const panel = element("article", "pdf-page"), title = element("h3"), message = element("p", "hint"), resultList = element("div", "pdf-results"), debugList = element("div");
       panel.append(title, message, resultList, debugList); pages.append(panel);
-      entry = { page: event.page, state: event.state, heading: title, status: message, resultList, debugList, passes: new Map(), results: [] };
+      entry = { page: event.page, state: event.state, heading: title, status: message, resultList, debugList, passes: new Map(), results: [], unverified: [] };
       entries.set(event.page, entry);
     }
     if (event.state !== "passComplete") entry.state = event.state;
     if (event.results) entry.results = event.results;
+    if (event.unverified) entry.unverified = event.unverified;
+    if (event.unreadable !== undefined) entry.unreadable = event.unreadable;
     if (event.trace){
       let pass = entry.passes.get(event.size);
       if (!pass){
@@ -69,7 +77,7 @@ export function createPDFView({ heading, status, pages, stopButton, t, onSelect 
       pass.image = image;
     }
   }
-  function complete(summary){ stopButton.disabled = true; setStatus("pdf.complete", summary); }
+  function complete(summary){ stopButton.disabled = true; setStatus(summary.unreadable ? "pdf.completeUnreadable" : "pdf.complete", summary); }
   function error(key){ stopButton.disabled = true; setStatus(key); }
   function stopped(){
     stopButton.disabled = true; setStatus("pdf.stopped");

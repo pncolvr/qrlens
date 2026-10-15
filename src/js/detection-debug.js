@@ -4,16 +4,26 @@ export function createDetectionDebug({ container, canvas, summary, list, t, maxP
   function refresh(){
     if (!trace) return;
     const success = trace.attempts.findIndex(attempt => attempt.outcome === "success");
-    let key = trace.phase === "fallback" ? "debug.fallback" : "debug.regions";
-    if (trace.phase === "complete") key = success < 0 ? "debug.failed" : trace.attempts[success].scope === "whole" ? "debug.successWhole" : "debug.successRegion";
+    let key = trace.phase === "whole" ? "debug.searchingWhole" : trace.phase === "fallback" ? "debug.fallback" : "debug.regions";
+    if (trace.phase === "complete"){
+      if (success < 0) key = "debug.failed";
+      else if (trace.attempts[success].scope !== "whole") key = "debug.successRegion";
+      else key = trace.attempts.slice(0, success).some(attempt => attempt.scope === "region") ? "debug.successWhole" : "debug.successWholeDirect";
+    }
     summary.textContent = t(key, { count: trace.proposals, index: success + 1 });
     if (trace.count > 1 && trace.phase === "complete") summary.textContent = t("debug.multiple", { count: trace.count });
+    if (trace.unreadable && trace.phase === "complete"){
+      summary.textContent = (trace.count ? `${summary.textContent} ` : "") + t("debug.unreadable", { count: trace.unreadable });
+      summary.textContent += ` ${t("debug.reason", { reason: trace.reasons.length ? trace.reasons.join("; ") : t("debug.reasonUnknown") })}`;
+    }
+    else if (success < 0 && trace.proposals && !trace.locatorFailed && trace.phase === "complete") summary.textContent = t("debug.candidateUnreadable");
     if (trace.locatorFailed) summary.textContent += ` ${t("debug.locatorFailed")}`;
     list.replaceChildren();
     trace.attempts.forEach((attempt, index) => {
       const item = document.createElement("li");
-      const sizes = attempt.passes.map(pass => `${pass.width} × ${pass.height} @ ${pass.rotation ?? 0}°: ${t(`debug.${pass.outcome}`)}`).join("; ");
-      item.textContent = t(attempt.scope === "whole" ? "debug.attemptWhole" : attempt.scope === "tile" ? "debug.attemptTile" : "debug.attemptRegion", { index: index + 1, outcome: t(`debug.${attempt.outcome}`), sizes });
+      const sizes = attempt.passes.map(pass => `${pass.width} × ${pass.height} @ ${pass.rotation ?? 0}°${pass.engine ? ` · ${pass.engine}${pass.variant ? ` / ${pass.variant}` : ""}` : ""}: ${t(pass.outcome === "unreadable" ? "debug.unreadablePass" : `debug.${pass.outcome}`)}`).join("; ");
+      item.textContent = t(attempt.scope === "whole" ? "debug.attemptWhole" : attempt.scope === "tile" ? "debug.attemptTile" : "debug.attemptRegion", { index: index + 1, outcome: t(attempt.outcome === "unreadable" ? "debug.unreadablePass" : `debug.${attempt.outcome}`), sizes });
+      if (attempt.errors?.length || attempt.outcome === "unreadable") item.textContent += ` ${t("debug.reason", { reason: attempt.errors?.length ? attempt.errors.join("; ") : t("debug.reasonUnknown") })}`;
       list.append(item);
     });
   }
@@ -29,7 +39,7 @@ export function createDetectionDebug({ container, canvas, summary, list, t, maxP
   function render(report){
     if (!report){ clear(); return; }
     // Keep only the small trace, never the original image, after the result opens.
-    trace = { phase: report.phase, proposals: report.proposals, count: report.results?.length || 0, locatorFailed: report.locatorFailed, attempts: report.attempts.map(attempt => ({ ...attempt, passes: [...attempt.passes] })) };
+    trace = { phase: report.phase, proposals: report.proposals, count: report.results?.length || 0, unreadable: report.unreadable?.length || 0, reasons: [...new Set((report.unreadable || []).flatMap(region => region.reasons || []))], locatorFailed: report.locatorFailed, attempts: report.attempts.map(attempt => ({ ...attempt, errors: [...(attempt.errors || [])], passes: [...attempt.passes] })) };
     container.classList.remove("hidden");
     const width = report.image.naturalWidth || report.image.width, height = report.image.naturalHeight || report.image.height;
     const scale = Math.min(1, maxPreviewSize / Math.max(width, height));
@@ -69,6 +79,14 @@ export function createDetectionDebug({ container, canvas, summary, list, t, maxP
       context.font = "bold 14px monospace";
       context.fillText(String(index + 1), x + 7, y + 18);
     });
+    for (const rect of report.unreadable || []){
+      context.strokeStyle = "#f87171";
+      context.lineWidth = 3;
+      context.setLineDash([]);
+      context.strokeRect(rect.x * sx, rect.y * sy, rect.width * sx, rect.height * sy);
+      context.fillStyle = "#f87171";
+      context.fillText("!", rect.x * sx + 4, rect.y * sy + 18);
+    }
     refresh();
   }
 

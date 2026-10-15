@@ -11,6 +11,7 @@ test('finder proposals isolate a small off-center QR and preserve a decodable ma
   const { finders, regions } = findQRRegions(image);
   assert.ok(finders.length >= 3);
   assert.ok(regions.length > 0 && regions.length <= 6);
+  assert.ok(regions.every(region => region.finders.length === 3));
   assert.ok(regions[0].width * regions[0].height < image.width * image.height / 10);
   const crop = cropImage(image, regions[0]);
   assert.equal(jsQR(crop.data, crop.width, crop.height)?.data, 'https://example.com/qr?test=1');
