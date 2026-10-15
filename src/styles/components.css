@@ -12,8 +12,8 @@
 .language-picker select{padding:10px 6px;border:0;background:transparent;color:var(--muted);cursor:pointer;}
 .language-picker option{background:var(--panel-2);color:var(--text);}
 .start__icon{width:56px;height:56px;color:var(--accent);}
-.brackets{position:absolute;inset:16px;pointer-events:none;}
-.brackets i{position:absolute;width:26px;height:26px;border:2.5px solid rgba(237,240,243,.55);}
+.brackets{position:absolute;pointer-events:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.25);}
+.brackets i{position:absolute;width:26px;height:26px;border:2.5px solid var(--accent);}
 .brackets .tl{top:0;left:0;border-right:none;border-bottom:none;border-top-left-radius:6px;}
 .brackets .tr{top:0;right:0;border-left:none;border-bottom:none;border-top-right-radius:6px;}
 .brackets .bl{bottom:0;left:0;border-right:none;border-top:none;border-bottom-left-radius:6px;}
@@ -45,3 +45,14 @@
 .scan-button:hover{background:#f0b354;border-color:#f0b354;}
 #resultStatus{min-height:0;font-size:12px;}
 #resultStatus:empty{display:none;}
+.image-stage{position:relative;max-width:100%;margin:auto;touch-action:none;cursor:crosshair;overflow:hidden;user-select:none;}
+#imagePreview{display:block;width:100%;height:auto;pointer-events:none;}
+.image-selection{position:absolute;border:2px solid var(--accent);box-shadow:0 0 0 100vmax rgba(0,0,0,.55);pointer-events:none;}
+#imageStatus{min-height:1.6em;}
+.start .drop-hint{font-size:12px;}
+.image-drop-overlay{position:fixed;inset:12px;z-index:10;display:grid;place-items:center;padding:24px;border:2px dashed var(--accent);border-radius:var(--radius);background:rgba(20,23,28,.94);pointer-events:none;}
+.image-drop-overlay p{color:var(--accent);font-size:20px;text-align:center;}
+.detection-debug{margin:12px 0;padding:14px;border:1px solid var(--border);border-radius:var(--radius);}
+.detection-debug summary{cursor:pointer;color:var(--muted);font-size:13px;}
+#detectionPreview{display:block;max-width:100%;max-height:50dvh;width:auto;height:auto;margin:14px auto 0;background:#fff;}
+#detectionAttempts{padding-left:24px;font-size:12px;line-height:1.7;overflow-wrap:anywhere;}

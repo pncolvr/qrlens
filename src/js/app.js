@@ -1,15 +1,44 @@
 import { supported, createCamera } from "./camera.js";
 import { parseQR } from "./qr.js";
+import { createImageScanner } from "./image.js";
+import { createDetectionDebug } from "./detection-debug.js";
 import { initTranslations, t } from "../i18n/i18n.js";
 
 const $ = id => document.getElementById(id);
 const showCameraSwitch = ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)
   && new URLSearchParams(location.search).get("showCameraSwitch") === "1";
-let result = null, view = "start", installPrompt = null;
+let result = null, view = "start", installPrompt = null, imageStatus = "", selectedRegion = null;
+let cameraRequest = 0, fileDragDepth = 0, importError = "";
+const detectionDebug = createDetectionDebug({ container: $("detectionDebug"), canvas: $("detectionPreview"), summary: $("detectionSummary"), list: $("detectionAttempts"), t });
 
 function showView(name){
+  if (view === "image" && name !== "image") imageScanner.clear();
+  if (name === "start" || name === "camera") detectionDebug.clear();
   view = name;
-  for (const section of ["start", "camera", "result"]) $("view-" + section).classList.toggle("hidden", section !== name);
+  for (const section of ["start", "camera", "image", "result"]) $("view-" + section).classList.toggle("hidden", section !== name);
+}
+
+function showResult(text){
+  result = { text, ...parseQR(text) };
+  $("resultStatus").textContent = "";
+  renderResult();
+  showView("result");
+  $("resultTitle").focus();
+}
+
+const imageScanner = createImageScanner({
+  preview: $("imagePreview"), stage: $("imageStage"), selection: $("imageSelection"),
+  onResult(text){ if (view === "image" && !document.hidden) showResult(text); },
+  onStatus(key){ imageStatus = key; $("imageStatus").textContent = t(key); },
+  onReady(ready){ $("btnDecodeImage").disabled = $("btnWholeImage").disabled = !ready; },
+  onSelection(region){ selectedRegion = { ...region }; renderSelection(); },
+  onDiagnostics: report => detectionDebug.render(report)
+});
+
+function renderSelection(){
+  if (!selectedRegion) return;
+  const percentages = Object.fromEntries(Object.entries(selectedRegion).map(([key, value]) => [key, Math.round(value * 100)]));
+  $("imageRegionStatus").textContent = t("image.selection", percentages);
 }
 
 function describeError(error){
@@ -24,18 +53,17 @@ function cameraError(error){
 
 const camera = createCamera({
   video: $("video"),
+  scanRegion: $("cameraRegion"),
   onStatus: ({ deviceCount }) => $("btnSwitch").classList.toggle("hidden", deviceCount < 2 && !showCameraSwitch),
   onError: cameraError,
   onResult(text){
     if (view !== "camera" || document.hidden || typeof text !== "string") return;
-    result = { text, ...parseQR(text) };
-    renderResult();
-    showView("result");
-    $("resultTitle").focus();
+    showResult(text);
   }
 });
 
 async function startCamera(switchDevice = false){
+  const request = ++cameraRequest;
   const { secure, hasMedia } = supported();
   $("startError").textContent = "";
   $("resultStatus").textContent = "";
@@ -46,9 +74,31 @@ async function startCamera(switchDevice = false){
   }
   $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = true;
   try {
-    if (await (switchDevice ? camera.switchDevice() : camera.start())) showView("camera");
-  } catch(error){ cameraError(error); }
-  finally { $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = false; }
+    const started = await (switchDevice ? camera.switchDevice() : camera.start());
+    if (started && request === cameraRequest) showView("camera");
+  } catch(error){ if (request === cameraRequest) cameraError(error); }
+  finally { if (request === cameraRequest) $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = false; }
+}
+
+function openImage(file){
+  if (!file) return;
+  importError = "";
+  $("importError").textContent = "";
+  cameraRequest++;
+  camera.stop();
+  $("btnStart").disabled = $("btnSwitch").disabled = $("btnScanAgain").disabled = false;
+  showView("image");
+  $("imageTitle").focus();
+  imageScanner.load(file);
+}
+
+function hideFileDrop(){
+  fileDragDepth = 0;
+  $("imageDropOverlay").classList.add("hidden");
+}
+
+function isFileDrag(event){
+  return Array.from(event.dataTransfer?.types || []).includes("Files");
 }
 
 async function copy(text){
@@ -116,14 +166,54 @@ function renderResult(){
 }
 
 $("btnStart").addEventListener("click", () => startCamera());
+for (const id of ["btnUpload", "btnUploadResult", "btnChooseImage"]){
+  $(id).addEventListener("click", () => $("imageInput").click());
+}
+$("imageInput").addEventListener("change", event => {
+  const file = event.target.files?.[0];
+  event.target.value = ""; // Allow choosing the same file again.
+  openImage(file);
+});
+document.addEventListener("dragenter", event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  fileDragDepth++;
+  $("imageDropOverlay").classList.remove("hidden");
+});
+document.addEventListener("dragover", event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "copy";
+});
+document.addEventListener("dragleave", () => {
+  if (fileDragDepth > 0 && --fileDragDepth === 0) hideFileDrop();
+});
+document.addEventListener("drop", event => {
+  hideFileDrop();
+  if (!isFileDrag(event) && !event.dataTransfer?.files?.length) return;
+  event.preventDefault(); // Keep the browser from navigating to the dropped file.
+  const file = Array.from(event.dataTransfer.files).find(file => file.type
+    ? file.type.startsWith("image/")
+    : /\.(?:png|jpe?g|jfif|gif|webp|bmp|avif|ico|svg|heic|heif|tiff?)$/i.test(file.name));
+  if (file) openImage(file);
+  else {
+    importError = "image.invalidDrop";
+    $("importError").textContent = t(importError);
+  }
+});
+document.addEventListener("dragend", hideFileDrop);
+window.addEventListener("blur", hideFileDrop);
+$("btnDecodeImage").addEventListener("click", () => imageScanner.decode());
+$("btnWholeImage").addEventListener("click", () => imageScanner.decodeWhole());
+$("btnCancelImage").addEventListener("click", () => { showView("start"); $("btnUpload").focus(); });
 $("btnSwitch").addEventListener("click", () => startCamera(true));
 $("btnScanAgain").addEventListener("click", () => startCamera());
 $("btnCopy").addEventListener("click", () => copy(result.text));
 $("btnStop").addEventListener("click", () => { camera.stop(); showView("start"); });
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden){ camera.stop(); if (view === "camera") showView("start"); }
+  if (document.hidden){ hideFileDrop(); camera.stop(); if (view === "camera") showView("start"); }
 });
-window.addEventListener("pagehide", () => camera.stop());
+window.addEventListener("pagehide", () => { hideFileDrop(); camera.stop(); if (view === "image") showView("start"); });
 
 window.addEventListener("beforeinstallprompt", event => {
   event.preventDefault();
@@ -140,6 +230,14 @@ $("btnInstall").addEventListener("click", async () => {
 
 initTranslations({ selector: $("languageSelect") }).then(() => {
   $("btnStart").disabled = false;
-  $("languageSelect").addEventListener("languagechange", () => { renderResult(); $("resultStatus").textContent = ""; });
+  $("btnUpload").disabled = false;
+  $("languageSelect").addEventListener("languagechange", () => {
+    renderResult();
+    $("resultStatus").textContent = "";
+    if (imageStatus) $("imageStatus").textContent = t(imageStatus);
+    if (importError) $("importError").textContent = t(importError);
+    renderSelection();
+    detectionDebug.refresh();
+  });
 }).catch(error => { $("startError").textContent = error.message; });
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(console.error);

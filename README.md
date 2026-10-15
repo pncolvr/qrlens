@@ -1,8 +1,8 @@
 # QR Lens
 
-A private camera QR scanner that runs entirely in your browser.
+A private camera and image QR scanner that runs entirely in your browser.
 
-Point the camera at a QR code. Scanning stops when a code is detected and presents the available actions. Actions run only when you select them.
+Place a QR code inside the camera’s scan square, or choose an image and select **Use whole image** to scan it immediately. You can also drag a box around a QR code and read only that region. Scanning stops when a code is detected and presents the available actions. Actions run only when you select them.
 
 | QR content | Action |
 | --- | --- |
@@ -25,7 +25,12 @@ Format references: [ZXing QR contents](https://github.com/zxing/zxing/wiki/Barco
 Unknown content is displayed as selectable text with a copy button. Every result can be copied, and **Scan another** starts the camera again.
 
 - Rear camera preferred, with switching between available cameras
-- No uploads, scan history, or document processing
+- Camera scans a centered crop, with a full-frame fallback about once per second
+- Choose an image from your device or drop image files anywhere in the app; the first image opens locally
+- Scan the whole image, or select a QR region with mouse, touch, or keyboard
+- **Use whole image** first searches for QR finder-pattern triples in a preview capped at 1280 pixels, tries up to six proposed crops from the original image, and falls back to decoding the full image at up to 2560 pixels
+- Expand **Detection debug** to see finder responses, numbered attempts, decode resolutions, and whether full-image fallback succeeded; the preview remains available with the result
+- No network uploads, scan history, or document processing
 - Installable PWA; offline scanning after the first load
 - English, Portuguese, and Spanish translations
 
@@ -42,6 +47,8 @@ To preview the switch-camera button with one camera, open `http://localhost:8000
 ## Tech
 
 Vanilla HTML/CSS/JS and [jsQR](https://github.com/cozmo/jsQR). The pinned jsQR 1.4.0 decoder is bundled locally in `src/vendor`, including its Apache 2.0 license. No build step or CDN connection is required at runtime.
+
+The lightweight region proposer checks 1:1:3:1:1 runs in both axes, groups finder candidates, and checks the geometry of triples before asking jsQR to verify a crop. Its response map is a heuristic, not a confidence probability. Very small, low-contrast, or strongly distorted codes may need the full-image fallback or a manual selection. Region analysis adds overhead when it cannot narrow the search; it does not guarantee a speedup for every image. Explicit manual selections never scan outside their bounds. See [jsQR’s locator](https://github.com/cozmo/jsQR/blob/master/src/locator/index.ts) for the finder-pattern approach used by the decoder itself.
 
 ## Checks
 

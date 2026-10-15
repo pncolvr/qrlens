@@ -1,6 +1,6 @@
 // Bump this version whenever a cached app-shell asset changes.
-const CACHE_NAME = "qr-lens-shell-v92";
-const APP_SHELL = ["./", "./index.html", "./js/app.js", "./js/camera.js", "./js/qr.js", "./vendor/jsQR-1.4.0.min.js", "./i18n/i18n.js", "./i18n/en.json", "./i18n/pt.json", "./i18n/es.json", "./styles/base.css", "./styles/layout.css", "./styles/components.css", "./manifest.webmanifest", "./assets/images/icon.svg", "./assets/images/icon-192.png", "./assets/images/icon-512.png"];
+const CACHE_NAME = "qr-lens-shell-v96";
+const APP_SHELL = ["./", "./index.html", "./js/app.js", "./js/camera.js", "./js/image.js", "./js/locator.js", "./js/detection-debug.js", "./js/qr.js", "./vendor/jsQR-1.4.0.min.js", "./i18n/i18n.js", "./i18n/en.json", "./i18n/pt.json", "./i18n/es.json", "./styles/base.css", "./styles/layout.css", "./styles/components.css", "./manifest.webmanifest", "./assets/images/icon.svg", "./assets/images/icon-192.png", "./assets/images/icon-512.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));

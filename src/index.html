@@ -34,6 +34,8 @@
       <h2 data-i18n="start.title">Scan a QR code</h2>
       <p><span data-i18n="start.description">Point your camera at a QR code.</span><span data-i18n="start.actionDescription">Choose an action or copy its text.</span></p>
       <button class="btn primary" id="btnStart" data-i18n="start.camera" disabled>Turn on camera</button>
+      <button class="btn" id="btnUpload" data-i18n="image.choose" disabled>Choose an image</button>
+      <p class="drop-hint" data-i18n="image.dropHint">Or drop an image file anywhere in the app.</p>
     </div>
     <p class="error mono" id="startError" role="alert"></p>
   </section>
@@ -41,9 +43,9 @@
   <section id="view-camera" class="hidden">
     <div class="viewport">
       <video id="video" playsinline muted autoplay data-i18n-aria-label="camera.preview" aria-label="Camera preview"></video>
-      <div class="brackets" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
+      <div class="brackets hidden" id="cameraRegion" aria-hidden="true"><i class="tl"></i><i class="tr"></i><i class="bl"></i><i class="br"></i></div>
     </div>
-    <p class="camera-status mono" role="status" data-i18n="status.searching">Point the camera at a QR code</p>
+    <p class="camera-status mono" role="status" data-i18n="status.searching">Place the QR code inside the square</p>
     <div class="controls">
       <button class="btn iconbtn camera-control hidden" id="btnSwitch" data-i18n-aria-label="camera.switch" aria-label="Switch camera" aria-describedby="switchTooltip">
         <svg class="ui-icon" aria-hidden="true"><use href="#icon-camera-switch"/></svg>
@@ -53,6 +55,25 @@
         <svg class="ui-icon" aria-hidden="true"><use href="#icon-stop"/></svg>
         <span class="control-tooltip" id="stopTooltip" role="tooltip" data-i18n="camera.stop">Stop camera</span>
       </button>
+    </div>
+  </section>
+
+  <section id="view-image" class="hidden">
+    <h2 id="imageTitle" tabindex="-1" data-i18n="image.title">Select a QR code</h2>
+    <p class="hint" id="imageInstructions" data-i18n="image.help">Choose Use whole image to scan without selecting an area. Or drag a box around the QR code, including a little margin. Use arrow keys to move the box; hold Shift to resize.</p>
+    <div class="image-workspace">
+      <div id="imageStage" class="image-stage hidden" tabindex="0" role="group" data-i18n-aria-label="image.region" aria-label="QR selection" aria-describedby="imageInstructions">
+        <img id="imagePreview" alt="" draggable="false">
+        <div id="imageSelection" class="image-selection hidden" aria-hidden="true"></div>
+      </div>
+    </div>
+    <p class="camera-status mono" id="imageStatus" role="status" aria-live="polite"></p>
+    <p class="sr-only" id="imageRegionStatus" role="status" aria-live="polite"></p>
+    <div class="controls">
+      <button class="btn primary" id="btnWholeImage" data-i18n="image.reset" disabled>Use whole image</button>
+      <button class="btn" id="btnDecodeImage" data-i18n="image.decode" disabled>Read selected region</button>
+      <button class="btn" id="btnChooseImage" data-i18n="image.choose">Choose an image</button>
+      <button class="btn" id="btnCancelImage" data-i18n="image.cancel">Back</button>
     </div>
   </section>
 
@@ -74,9 +95,22 @@
         <button class="btn scan-button" id="btnScanAgain"><svg class="ui-icon" aria-hidden="true"><use href="#icon-qr"/></svg><span data-i18n="result.scanAgain">Scan another</span></button>
       </div>
       <p class="mono" id="resultStatus" role="status" aria-live="polite"></p>
+      <button class="btn" id="btnUploadResult" data-i18n="image.choose">Choose an image</button>
     </div>
   </section>
+  <details id="detectionDebug" class="detection-debug hidden">
+    <summary data-i18n="debug.title">Detection debug</summary>
+    <p id="detectionSummary" class="hint" role="status" aria-live="polite"></p>
+    <canvas id="detectionPreview" role="img" data-i18n-aria-label="debug.preview" aria-label="Finder candidates and attempted QR regions"></canvas>
+    <p class="hint" data-i18n="debug.legend">Cyan: finder candidates. Amber: unsuccessful attempts. Green: decoded. Dashed border: whole-image fallback.</p>
+    <ol id="detectionAttempts" class="mono"></ol>
+  </details>
+  <input type="file" id="imageInput" class="hidden" accept="image/*">
+  <p class="error mono" id="importError" role="alert"></p>
   <p class="foot mono" data-i18n="footer.local">runs locally in your browser — nothing is uploaded</p>
+</div>
+<div id="imageDropOverlay" class="image-drop-overlay hidden" aria-hidden="true">
+  <p data-i18n="image.dropPrompt">Drop an image to read a QR code</p>
 </div>
 <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
   <symbol id="icon-stop" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/></symbol>

@@ -21,3 +21,5 @@
 #resultActions:empty,#resultDetails:empty{display:none;}
 @media (max-width:600px){.result-panel{padding:22px 18px;border-radius:16px;} .result-controls .btn{padding-inline:12px;font-size:13px;}}
 @media (max-width:350px){.result-controls{flex-wrap:wrap;} .result-controls .btn{flex:1;}}
+#view-image h2{margin:8px 0 0;font-size:20px;}
+.image-workspace{display:flex;align-items:center;justify-content:center;flex:1;min-height:160px;margin-top:16px;padding:8px;background:#000;border:1px solid var(--border);border-radius:var(--radius);}
