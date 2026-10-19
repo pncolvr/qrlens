@@ -127,5 +127,7 @@
   "debug.reasonUnknown": "The decoder did not provide a reason.",
   "result.unverified": "Unverified QR text — checksum validation failed. This text may be incomplete or incorrect.",
   "image.searchingWhole": "Checking the whole image for additional QR codes…",
-  "debug.searchingWhole": "Candidate regions decoded. Checking the whole image for additional QR codes."
+  "debug.searchingWhole": "Candidate regions decoded. Checking the whole image for additional QR codes.",
+  "support.coffee": "Finding this useful? You can support this project.",
+  "support.coffeeLabel": "Support this project on Buy Me a Coffee (opens in a new tab)"
 }

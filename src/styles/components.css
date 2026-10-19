@@ -67,3 +67,12 @@
 .pdf-results{display:grid;gap:10px;margin-top:12px;}
 .pdf-code{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--bg);}
 .pdf-code p{font-size:12px;overflow-wrap:anywhere;white-space:pre-wrap;max-height:9em;overflow:auto;}
+
+.coffee-link{display:none;align-items:center;justify-content:center;gap:7px;flex:0 0 auto;min-height:32px;padding:4px 0;border:0;background:transparent;color:var(--muted);font:500 11px/1.2 ui-sans-serif,system-ui,sans-serif;text-decoration:none;transition:color .15s ease;}
+.coffee-link__icon{display:block;flex:0 0 auto;width:17px;height:24px;object-fit:contain;}
+.coffee-link:hover{color:var(--accent);}
+.coffee-link:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px;}
+#view-result:not(.hidden) ~ .app-footer .coffee-link{display:inline-flex;animation:coffee-fade-in .7s ease-out .2s both;}
+@keyframes coffee-fade-in{from{opacity:0;}to{opacity:1;}}
+@media (prefers-reduced-motion:reduce){#view-result:not(.hidden) ~ .app-footer .coffee-link{animation:none;}}
+@media (max-width:700px){.coffee-link{width:44px;min-height:44px;padding:6px;}.coffee-link__text{display:none;}}

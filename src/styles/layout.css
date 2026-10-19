@@ -23,3 +23,8 @@
 @media (max-width:350px){.result-controls{flex-wrap:wrap;} .result-controls .btn{flex:1;}}
 #view-image h2{margin:8px 0 0;font-size:20px;}
 .image-workspace{display:flex;align-items:center;justify-content:center;flex:1;min-height:160px;margin-top:16px;padding:8px;background:#000;border:1px solid var(--border);border-radius:var(--radius);}
+
+.app-footer{flex:0 0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,1fr);align-items:center;gap:12px;padding:4px 0 max(8px,env(safe-area-inset-bottom));}
+.app-footer .foot{grid-column:2;grid-row:1;min-width:0;padding:0;}
+.app-footer .coffee-link{grid-column:3;grid-row:1;justify-self:end;min-width:0;max-width:100%;}
+@media (max-width:700px){.app-footer{grid-template-columns:44px minmax(0,1fr) 44px;column-gap:8px;}}

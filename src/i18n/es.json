@@ -127,5 +127,7 @@
   "debug.reasonUnknown": "El decodificador no indicó un motivo.",
   "result.unverified": "Texto QR sin verificar — falló la validación de la suma de control. Este texto puede estar incompleto o ser incorrecto.",
   "image.searchingWhole": "Buscando otros códigos QR en la imagen completa…",
-  "debug.searchingWhole": "Áreas candidatas decodificadas. Buscando otros códigos QR en la imagen completa."
+  "debug.searchingWhole": "Áreas candidatas decodificadas. Buscando otros códigos QR en la imagen completa.",
+  "support.coffee": "¿Te resulta útil? Puedes apoyar este proyecto.",
+  "support.coffeeLabel": "Apoya este proyecto en Buy Me a Coffee (se abre en una nueva pestaña)"
 }
